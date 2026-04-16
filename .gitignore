@@ -1,0 +1,14 @@
+# Environment files (never commit secrets)
+.env
+.env.*
+
+# Python
+__pycache__/
+*.py[cod]
+
+# Django / local dev
+*.sqlite3
+db.sqlite3
+
+# Allow example env files to be committed
+!.env.example
