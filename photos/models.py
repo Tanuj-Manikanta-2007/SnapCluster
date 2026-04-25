@@ -14,6 +14,8 @@ class Room(models.Model):
 class Image(models.Model):
   room = models.ForeignKey(Room, on_delete=models.CASCADE, related_name="images", null=True, blank=True)
   image_url = models.TextField()
+  embeddings = models.TextField(null=True, blank=True)
+  face_count = models.PositiveIntegerField(default=0)
   uploaded_at = models.DateTimeField(auto_now_add = True)
 
   def __str__(self):

@@ -15,10 +15,102 @@ function getRoomCode() {
   return params.get('code');
 }
 
+const ROOMS_STORAGE_KEY = 'snap_rooms_v1';
+
+function getStoredRooms() {
+  try {
+    const raw = localStorage.getItem(ROOMS_STORAGE_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed.filter((x) => typeof x === 'string' && x.trim()) : [];
+  } catch {
+    return [];
+  }
+}
+
+function setStoredRooms(rooms) {
+  try {
+    localStorage.setItem(ROOMS_STORAGE_KEY, JSON.stringify(rooms));
+  } catch {
+    // ignore
+  }
+}
+
+function addStoredRoom(code) {
+  const c = (code || '').trim();
+  if (!c) return;
+  const rooms = getStoredRooms().filter((x) => x !== c);
+  rooms.unshift(c);
+  setStoredRooms(rooms.slice(0, 30));
+}
+
+function removeStoredRoom(code) {
+  const c = (code || '').trim();
+  if (!c) return;
+  const rooms = getStoredRooms().filter((x) => x !== c);
+  setStoredRooms(rooms);
+}
+
+function renderStoredRooms() {
+  const list = document.getElementById('yourRoomsList');
+  const empty = document.getElementById('yourRoomsEmpty');
+  if (!list) return;
+
+  const rooms = getStoredRooms();
+  list.innerHTML = '';
+
+  if (empty) empty.style.display = rooms.length ? 'none' : 'block';
+  if (!rooms.length) return;
+
+  for (const code of rooms) {
+    const card = document.createElement('div');
+    card.className = 'card snap-room-card';
+
+    const title = document.createElement('h2');
+    const titleLabel = document.createElement('span');
+    titleLabel.textContent = 'Room ';
+    const codeEl = document.createElement('span');
+    codeEl.className = 'snap-room-code';
+    codeEl.textContent = code;
+    title.appendChild(titleLabel);
+    title.appendChild(codeEl);
+
+    const actions = document.createElement('div');
+    actions.className = 'snap-room-actions';
+
+    const openBtn = document.createElement('button');
+    openBtn.textContent = 'Open';
+    openBtn.addEventListener('click', () => {
+      window.location.href = `/room/?code=${encodeURIComponent(code)}`;
+    });
+
+    const deleteBtn = document.createElement('button');
+    deleteBtn.textContent = 'Delete';
+    deleteBtn.className = 'snap-btn-danger';
+    deleteBtn.addEventListener('click', async () => {
+      await deleteRoom(code);
+    });
+
+    actions.appendChild(openBtn);
+    actions.appendChild(deleteBtn);
+
+    card.appendChild(title);
+    card.appendChild(actions);
+    list.appendChild(card);
+  }
+}
+
+function initHomePage() {
+  renderStoredRooms();
+}
+
 function initRoomPage() {
   const code = getRoomCode();
   const el = document.getElementById('roomCodeDisplay');
   if (el) el.textContent = code ? code : '';
+
+  if (code) {
+    addStoredRoom(code);
+  }
 
   const imagesInput = document.getElementById('imagesInput');
   if (imagesInput && !imagesInput.dataset.bound) {
@@ -46,6 +138,12 @@ function initRoomPage() {
     alert('Missing room code in URL. Use /room/?code=XXXX');
   }
 }
+
+document.addEventListener('DOMContentLoaded', () => {
+  if (document.getElementById('yourRoomsList')) {
+    initHomePage();
+  }
+});
 
 function triggerImagePicker() {
   const input = document.getElementById('imagesInput');
@@ -85,6 +183,50 @@ function clearSelection() {
   setSelectionCount();
 }
 
+function renderUploadResults(payload) {
+  const wrap = document.getElementById('uploadResults');
+  const metaEl = document.getElementById('uploadResultsMeta');
+  const grid = document.getElementById('uploadResultsGrid');
+  if (!wrap || !grid) return;
+
+  const processed = payload && Array.isArray(payload.processed) ? payload.processed : [];
+  if (!processed.length) {
+    wrap.hidden = true;
+    grid.innerHTML = '';
+    if (metaEl) metaEl.textContent = '';
+    return;
+  }
+
+  const totalFaces = typeof payload.total_faces === 'number'
+    ? payload.total_faces
+    : processed.reduce((acc, x) => acc + (x && x.face_count ? x.face_count : 0), 0);
+
+  wrap.hidden = false;
+  if (metaEl) metaEl.textContent = `${processed.length} image(s) • ${totalFaces} face(s)`;
+  grid.innerHTML = '';
+
+  for (const item of processed) {
+    if (!item || !item.url) continue;
+
+    const card = document.createElement('div');
+    card.className = 'snap-result-card';
+
+    const img = document.createElement('img');
+    img.src = item.url;
+    img.alt = 'uploaded';
+    img.loading = 'lazy';
+
+    const meta = document.createElement('div');
+    meta.className = 'snap-result-meta';
+    const nFaces = item.face_count || 0;
+    meta.textContent = `Faces: ${nFaces}`;
+
+    card.appendChild(img);
+    card.appendChild(meta);
+    grid.appendChild(card);
+  }
+}
+
 async function createRoom() {
   const nameEl = document.getElementById('createName');
   const payload = { name: nameEl ? nameEl.value : '' };
@@ -109,6 +251,10 @@ async function createRoom() {
     alert('Create succeeded but room_code missing in response.');
     return;
   }
+
+  addStoredRoom(code);
+  renderStoredRooms();
+  alert(`Room created! Code: ${code}`);
 
   window.location.href = `/room/?code=${encodeURIComponent(code)}`;
 }
@@ -136,7 +282,45 @@ async function joinRoom() {
     return;
   }
 
+  addStoredRoom(code);
+  renderStoredRooms();
+  alert(`Joined room! Code: ${code}`);
+
   window.location.href = `/room/?code=${encodeURIComponent(code)}`;
+}
+
+async function deleteRoom(codeOverride) {
+  const code = (codeOverride || getRoomCode() || '').trim();
+  if (!code) {
+    alert('Missing room code');
+    return;
+  }
+
+  const ok = confirm(`Delete room ${code}? This will delete all images in the room.`);
+  if (!ok) return;
+
+  const res = await fetch('/delete-room/', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...csrfHeaders(),
+    },
+    body: JSON.stringify({ room_code: code }),
+  });
+
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    alert(data.error || `Delete failed (${res.status})`);
+    return;
+  }
+
+  removeStoredRoom(code);
+  renderStoredRooms();
+
+  // If called from the room page, go back home after deletion.
+  if (getRoomCode() === code) {
+    window.location.href = '/';
+  }
 }
 
 async function loadImages() {
@@ -197,7 +381,8 @@ async function loadImages() {
 
     const overlay = document.createElement('div');
     overlay.className = 'snap-overlay';
-    overlay.textContent = `Room: ${code}`;
+    const fc = item.face_count || 0;
+    overlay.textContent = `Room: ${code} • Faces: ${fc}`;
 
     card.addEventListener('click', () => {
       toggleSelected(item.id);
@@ -308,6 +493,7 @@ async function uploadImages() {
     return;
   }
 
+  renderUploadResults(data);
   await loadImages();
   if (input) input.value = '';
 }
@@ -344,6 +530,7 @@ async function uploadZip() {
     return;
   }
 
+  renderUploadResults(data);
   await loadImages();
   if (input) input.value = '';
 }

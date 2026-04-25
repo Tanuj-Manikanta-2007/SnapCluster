@@ -414,6 +414,68 @@ button:hover {
     padding-top: 16px;
 }
 
+.snap-home-rooms {
+    width: min(920px, 100%);
+    margin: 26px auto 0;
+    padding: 18px;
+    border-radius: 18px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.10);
+    backdrop-filter: blur(12px);
+}
+
+.snap-home-rooms-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.snap-home-rooms-title {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 800;
+}
+
+.snap-home-rooms-sub {
+    color: #94a3b8;
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.snap-home-rooms-empty {
+    color: #94a3b8;
+    font-weight: 600;
+}
+
+.snap-home-rooms-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 14px;
+    margin-top: 12px;
+}
+
+.snap-room-card {
+    width: auto;
+}
+
+.snap-room-code {
+    font-weight: 800;
+    letter-spacing: 0.6px;
+}
+
+.snap-room-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 12px;
+}
+
+.snap-room-actions button {
+    width: auto;
+    flex: 1;
+}
+
 .snap-gallery {
     column-count: 4;
     column-gap: 18px;
@@ -503,6 +565,61 @@ button:hover {
 
 .snap-upload-fab:hover {
     transform: translateY(-4px);
+}
+
+/* Upload results (flexbox) */
+.snap-results {
+    margin: 20px 0 18px;
+    padding: 16px;
+    border-radius: 18px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.10);
+    backdrop-filter: blur(14px);
+}
+
+.snap-results-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 14px;
+    margin-bottom: 12px;
+}
+
+.snap-results-title {
+    font-weight: 800;
+    letter-spacing: 0.2px;
+}
+
+.snap-results-meta {
+    color: #94a3b8;
+    font-weight: 600;
+}
+
+.snap-results-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+}
+
+.snap-result-card {
+    width: 200px;
+    border-radius: 16px;
+    overflow: hidden;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.10);
+}
+
+.snap-result-card img {
+    width: 100%;
+    height: 140px;
+    object-fit: cover;
+    display: block;
+}
+
+.snap-result-meta {
+    padding: 10px 12px;
+    font-weight: 700;
+    color: #e2e8f0;
 }
 
 @media (max-width: 1000px) {

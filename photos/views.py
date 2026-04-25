@@ -10,11 +10,13 @@ import uuid
 import zipfile,io
 import os
 import json
+import requests
 from urllib.parse import urlparse
 from urllib.request import urlopen, Request
 from .models import Image, Room
 from .supabase_client import supabase
 from .utils import generate_room_code
+from .face_utils import represent_faces
 
 
 @method_decorator(ensure_csrf_cookie, name='dispatch')
@@ -29,7 +31,7 @@ class RoomPage(TemplateView):
 
 class UploadImages(APIView):
 
-  def post(self,request):
+  def post(self, request):
     room_code = request.data.get('room_code') or request.data.get('code')
 
     file_field_candidates = ["images", "image", "files", "file"]
@@ -58,16 +60,14 @@ class UploadImages(APIView):
     try:
       room = Room.objects.get(code=room_code)
     except Room.DoesNotExist:
-      return Response({"error" : "Invalid room"},status = 404)
+      return Response({"error": "Invalid room"}, status=404)
     
-    uploaded_urls = []
+    processed = []
 
     for file in files:
       
       file_name = f"{uuid.uuid4()}_{file.name}"
-      
       file_path = f"{room.code}/{file_name}"
-
       file_bytes = file.read()
 
       try:
@@ -79,17 +79,51 @@ class UploadImages(APIView):
           "detail": str(exc),
         }, status=502)
 
-      Image.objects.create(
-          room=room,
-          image_url=public_url
+      # Process faces locally from the uploaded bytes (avoid refetching from Supabase)
+      ext = os.path.splitext(file.name)[1] or ".jpg"
+      temp_path = f"temp_{uuid.uuid4().hex}{ext}"
+      with open(temp_path, "wb") as f:
+        f.write(file_bytes)
+
+      faces = represent_faces(temp_path)
+      try:
+        os.remove(temp_path)
+      except Exception:
+        pass
+
+      embeddings = [
+        r.get("embedding")
+        for r in faces
+        if isinstance(r, dict) and r.get("embedding") is not None
+      ]
+      face_meta = [
+        {
+          "confidence": (r.get("confidence") if isinstance(r, dict) else None),
+          "facial_area": (r.get("facial_area") if isinstance(r, dict) else None),
+        }
+        for r in faces
+        if isinstance(r, dict)
+      ]
+
+      img = Image.objects.create(
+        room=room,
+        image_url=public_url,
+        embeddings=json.dumps(embeddings),
+        face_count=len(embeddings),
       )
 
-      uploaded_urls.append(public_url)
+      processed.append({
+        "id": img.id,
+        "url": public_url,
+        "face_count": img.face_count,
+        "faces": face_meta,
+      })
 
     return Response({
         "message": "Images uploaded successfully",
-        "count": len(uploaded_urls),
-        "urls": uploaded_urls
+        "count": len(processed),
+        "total_faces": sum((p.get("face_count") or 0) for p in processed),
+        "processed": processed,
       }, status=201)
 
 
@@ -142,7 +176,7 @@ class RoomImages(APIView):
         url = img.image_url
         if isinstance(url, str) and "/storage/v1/object/public/iamges/" in url:
           url = url.replace("/storage/v1/object/public/iamges/", "/storage/v1/object/public/images/")
-        data.append({"id": img.id, "url": url})
+        data.append({"id": img.id, "url": url, "face_count": getattr(img, "face_count", 0) or 0})
 
       return Response({"images": data})
     except Room.DoesNotExist:
@@ -196,6 +230,38 @@ class DeleteImages(APIView):
     deleted_count, _ = Image.objects.filter(room=room, id__in=[img.id for img in images]).delete()
     # Django returns (num_deleted, {"app.Model": num})
     return Response({"deleted": deleted_count})
+
+
+class DeleteRoom(APIView):
+
+  def post(self, request):
+    room_code = request.data.get("room_code") or request.data.get("code")
+    if not room_code:
+      return Response({
+        "error": "Missing data",
+        "expected": {"room_code": ["room_code", "code"]},
+      }, status=400)
+
+    try:
+      room = Room.objects.get(code=room_code)
+    except Room.DoesNotExist:
+      return Response({"error": "Room not found"}, status=404)
+
+    # Best-effort remove all objects under this room from Supabase storage.
+    try:
+      images = list(Image.objects.filter(room=room))
+      paths = []
+      for img in images:
+        p = _try_get_supabase_path_from_public_url(img.image_url)
+        if p:
+          paths.append(p)
+      if paths:
+        supabase.storage.from_("images").remove(paths)
+    except Exception:
+      pass
+
+    room.delete()
+    return Response({"deleted": True, "room_code": room_code})
 
 
 class DownloadImagesZip(APIView):
@@ -263,11 +329,11 @@ class UploadZip(APIView):
     except Room.DoesNotExist:
       return Response({"error": "Invalid room"}, status=404)
     
-    uploaded_urls = []
+    processed = []
     try:
         zip_bytes = zip_file.read()
         zip_data = zipfile.ZipFile(io.BytesIO(zip_bytes))
-    except:
+    except Exception:
         return Response({"error": "Invalid ZIP file"}, status=400)
 
     for zip_info in zip_data.infolist():
@@ -275,10 +341,17 @@ class UploadZip(APIView):
         if zip_info.is_dir():
             continue
 
-        file_name = zip_info.filename
+        # Only keep the base file name to avoid directory traversal / odd paths
+        file_name = os.path.basename(zip_info.filename)
+        if not file_name:
+          continue
 
         if not file_name.lower().endswith(('.png', '.jpg', '.jpeg')):
             continue
+
+        # Basic safety: skip very large members (default 10MB)
+        if getattr(zip_info, "file_size", 0) and zip_info.file_size > 10 * 1024 * 1024:
+          continue
 
         import uuid
         file_name = f"{uuid.uuid4()}_{file_name}"
@@ -296,17 +369,50 @@ class UploadZip(APIView):
             "detail": str(exc),
           }, status=502)
 
-        Image.objects.create(
-            room=room,
-            image_url=public_url
+        ext = os.path.splitext(file_name)[1] or ".jpg"
+        temp_path = f"temp_{uuid.uuid4().hex}{ext}"
+        with open(temp_path, "wb") as f:
+          f.write(file_data)
+
+        faces = represent_faces(temp_path)
+        try:
+          os.remove(temp_path)
+        except Exception:
+          pass
+
+        embeddings = [
+          r.get("embedding")
+          for r in faces
+          if isinstance(r, dict) and r.get("embedding") is not None
+        ]
+        face_meta = [
+          {
+            "confidence": (r.get("confidence") if isinstance(r, dict) else None),
+            "facial_area": (r.get("facial_area") if isinstance(r, dict) else None),
+          }
+          for r in faces
+          if isinstance(r, dict)
+        ]
+
+        img = Image.objects.create(
+          room=room,
+          image_url=public_url,
+          embeddings=json.dumps(embeddings),
+          face_count=len(embeddings),
         )
 
-        uploaded_urls.append(public_url)
+        processed.append({
+          "id": img.id,
+          "url": public_url,
+          "face_count": img.face_count,
+          "faces": face_meta,
+        })
 
     return Response({
         "message": "ZIP processed successfully",
-        "count": len(uploaded_urls),
-        "urls": uploaded_urls
+      "count": len(processed),
+      "total_faces": sum((p.get("face_count") or 0) for p in processed),
+      "processed": processed,
     }, status=201)    
 
 

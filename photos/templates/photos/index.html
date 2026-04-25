@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Snap Cluster</title>
   {% load static %}
-  <link rel="stylesheet" href="{% static 'css/style.css' %}?v=5">
+  <link rel="stylesheet" href="{% static 'css/style.css' %}?v=7">
 </head>
 <body>
   <div class="snap-glow"></div>
@@ -36,8 +36,17 @@
         <button onclick="joinRoom()">Join</button>
       </div>
     </div>
+
+    <section class="snap-home-rooms" aria-label="Your rooms">
+      <div class="snap-home-rooms-head">
+        <h2 class="snap-home-rooms-title">Your rooms</h2>
+        <div class="snap-home-rooms-sub">Saved on this device</div>
+      </div>
+      <div id="yourRoomsEmpty" class="snap-home-rooms-empty">No rooms yet. Create or join one above.</div>
+      <div id="yourRoomsList" class="snap-home-rooms-list"></div>
+    </section>
   </main>
 
-  <script src="{% static 'js/app.js' %}?v=5"></script>
+  <script src="{% static 'js/app.js' %}?v=7"></script>
 </body>
 </html>

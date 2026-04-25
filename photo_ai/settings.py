@@ -10,10 +10,21 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
+import os
 from pathlib import Path
+from urllib.parse import parse_qs, urlparse
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+
+# Optional: load environment variables from .env for local development
+try:
+    from dotenv import load_dotenv
+
+    load_dotenv(BASE_DIR / ".env")
+except Exception:
+    pass
 
 
 # Quick-start development settings - unsuitable for production
@@ -75,11 +86,44 @@ WSGI_APPLICATION = 'photo_ai.wsgi.application'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+    "default": {
+        "ENGINE": "django.db.backends.sqlite3",
+        "NAME": BASE_DIR / "db.sqlite3",
     }
 }
+
+
+def _db_from_url(db_url: str):
+    parsed = urlparse(db_url)
+    scheme = (parsed.scheme or "").lower()
+    if scheme not in {"postgres", "postgresql"}:
+        raise ValueError("Only postgres/postgresql URLs are supported")
+
+    qs = parse_qs(parsed.query or "")
+    sslmode = (qs.get("sslmode", [None])[0] or "require").lower()
+
+    name = (parsed.path or "").lstrip("/")
+    if not name:
+        name = "postgres"
+
+    return {
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": name,
+        "USER": parsed.username or "postgres",
+        "PASSWORD": parsed.password or "",
+        "HOST": parsed.hostname or "localhost",
+        "PORT": str(parsed.port or 5432),
+        "CONN_MAX_AGE": 60,
+        "OPTIONS": {
+            "sslmode": sslmode,
+        },
+    }
+
+
+# Use Supabase Postgres when configured; otherwise keep SQLite.
+_supabase_db_url = os.environ.get("SUPABASE_DB_URL") or os.environ.get("DATABASE_URL")
+if _supabase_db_url:
+    DATABASES["default"] = _db_from_url(_supabase_db_url)
 
 
 # Password validation
