@@ -153,8 +153,14 @@ def cluster_faces(
   *,
   min_cluster_size: int = 2,
   min_samples: int | None = 1,
-  fallback_threshold: float = 0.62,
-  prune_threshold: float = 0.60,
+  # NOTE: HDBSCAN's cluster_selection_epsilon is a *distance* (not cosine similarity).
+  # With L2-normalized FaceNet embeddings, large values can easily merge different people.
+  # Default disabled (0.0) to avoid intermixing; can be enabled via API query param.
+  cluster_selection_epsilon: float | None = 0.0,
+  cluster_selection_method: str = "eom",
+  # Fallback clustering uses cosine similarity on normalized embeddings.
+  fallback_threshold: float = 0.80,
+  prune_threshold: float = 0.80,
 ):
   if not embeddings_list:
     return []
@@ -187,11 +193,32 @@ def cluster_faces(
     # print("hdbscan import error:", imp_exc)
 
   if hdbscan is not None:
-    clusterer = hdbscan.HDBSCAN(
-      min_cluster_size=min_cluster_size,
-      min_samples=min_samples,
-      metric='euclidean',
-    )
+    kwargs = {
+      "min_cluster_size": min_cluster_size,
+      "min_samples": min_samples,
+      "metric": "euclidean",
+    }
+
+    # Helps merge very close sub-clusters (reduces "same person split into multiple groups").
+    if cluster_selection_epsilon is not None:
+      try:
+        eps = float(cluster_selection_epsilon)
+      except Exception:
+        eps = None
+      if eps is not None and eps > 0:
+        kwargs["cluster_selection_epsilon"] = eps
+
+    if cluster_selection_method:
+      kwargs["cluster_selection_method"] = str(cluster_selection_method)
+
+    try:
+      clusterer = hdbscan.HDBSCAN(**kwargs)
+    except TypeError:
+      # Older hdbscan versions may not support some kwargs; fall back gracefully.
+      kwargs.pop("cluster_selection_epsilon", None)
+      kwargs.pop("cluster_selection_method", None)
+      clusterer = hdbscan.HDBSCAN(**kwargs)
+
     labels = clusterer.fit_predict(Xn)
 
   # If everything is noise (-1), use a similarity-threshold fallback.

@@ -28,6 +28,14 @@ def _env_int(name: str, default: int) -> int:
     return default
 
 
+def _env_str(name: str, default: str | None = None) -> str | None:
+  raw = os.environ.get(name)
+  if raw is None:
+    return default
+  s = str(raw)
+  return s
+
+
 def represent_faces(
   image_path: str,
   *,
@@ -46,27 +54,47 @@ def represent_faces(
   if enforce_detection is None:
     enforce_detection = _env_bool("DEEPFACE_ENFORCE_DETECTION", True)
 
+  # Default to Facenet for speed; allow override via env.
+  model_name = (os.environ.get("DEEPFACE_MODEL_NAME") or model_name).strip() or model_name
+
   if detector_backend is None:
     detector_backend = os.environ.get("DEEPFACE_DETECTOR_BACKEND") or None
+
+  # If not specified, prefer RetinaFace (more robust alignment) when available.
+  if not detector_backend:
+    detector_backend = "retinaface"
+
+  verbose_logs = _env_bool("DEEPFACE_VERBOSE_LOGS", False)
 
   try:
     try:
       from deepface import DeepFace
     except Exception as imp_exc:
-      print("DeepFace import error:", imp_exc)
+      if verbose_logs:
+        print("DeepFace import error:", imp_exc)
       return []
 
-    kwargs = {}
-    if detector_backend:
-      kwargs["detector_backend"] = detector_backend
+    def _call(detector: str | None):
+      kwargs = {}
+      if detector:
+        kwargs["detector_backend"] = detector
+      return DeepFace.represent(
+        img_path=image_path,
+        model_name=model_name,
+        enforce_detection=enforce_detection,
+        align=align,
+        **kwargs,
+      )
 
-    result = DeepFace.represent(
-      img_path=image_path,
-      model_name=model_name,
-      enforce_detection=enforce_detection,
-      align=align,
-      **kwargs,
-    )
+    try:
+      result = _call(detector_backend)
+    except Exception as exc:
+      # If the preferred detector isn't installed/available, fall back to DeepFace defaults.
+      # This keeps the app working across environments.
+      msg = str(exc) if exc is not None else ""
+      if verbose_logs:
+        print("DeepFace detector backend failed; retrying with default backend:", detector_backend, msg)
+      result = _call(None)
 
     # DeepFace may return a dict for single-face; normalize to list.
     if isinstance(result, dict):
@@ -74,7 +102,13 @@ def represent_faces(
     return result or []
   except Exception as e:
     # Common case: no face detected when enforce_detection=True.
-    print("DeepFace.represent error:", e)
+    # Don't spam logs for this; treat it as a normal "0 faces" outcome.
+    msg = str(e) if e is not None else ""
+    if "Face could not be detected" in msg:
+      return []
+
+    if verbose_logs:
+      print("DeepFace.represent error:", e)
     return []
 
 

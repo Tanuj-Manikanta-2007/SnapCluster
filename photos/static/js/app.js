@@ -15,6 +15,39 @@ function getRoomCode() {
   return params.get('code');
 }
 
+function openImageInNewTab(url) {
+  if (!url) return;
+  try {
+    window.open(url, '_blank', 'noopener,noreferrer');
+  } catch {
+    // ignore
+  }
+}
+
+function setRoomHeader(room) {
+  const nameEl = document.getElementById('roomNameDisplay');
+  const codeEl = document.getElementById('roomCodeDisplay');
+  const descWrap = document.getElementById('roomDescriptionWrap');
+  const descEl = document.getElementById('roomDescription');
+
+  const name = room && typeof room.name === 'string' ? room.name.trim() : '';
+  const code = room && typeof room.code === 'string' ? room.code.trim() : '';
+  const desc = room && typeof room.description === 'string' ? room.description.trim() : '';
+
+  if (nameEl) nameEl.textContent = name || 'Room';
+  if (codeEl) codeEl.textContent = code ? `(${code})` : '';
+
+  if (descWrap && descEl) {
+    if (desc) {
+      descEl.textContent = desc;
+      descWrap.hidden = false;
+    } else {
+      descEl.textContent = '';
+      descWrap.hidden = true;
+    }
+  }
+}
+
 const ROOMS_STORAGE_KEY = 'snap_rooms_v1';
 
 const FAVORITE_PEOPLE_KEY_PREFIX = 'snap_favorite_people_v1:';
@@ -147,8 +180,8 @@ function initHomePage() {
 
 function initRoomPage() {
   const code = getRoomCode();
-  const el = document.getElementById('roomCodeDisplay');
-  if (el) el.textContent = code ? code : '';
+  // Initial header (will be replaced once we fetch room info)
+  setRoomHeader({ code, name: 'Room', description: '' });
 
   if (code) {
     addStoredRoom(code);
@@ -373,6 +406,10 @@ function renderPeopleClusters(containerEl, roomCode, clusters, labels, options) 
       img.alt = 'person';
       img.loading = 'lazy';
 
+      card.addEventListener('dblclick', () => {
+        openImageInNewTab(item.url);
+      });
+
       card.addEventListener('click', () => {
         toggleSelected(id);
         checkbox.checked = selectedImageIds.has(id);
@@ -525,6 +562,10 @@ async function searchMeInRoom() {
     img.alt = 'match';
     img.loading = 'lazy';
 
+    card.addEventListener('dblclick', () => {
+      openImageInNewTab(m.url);
+    });
+
     const meta = document.createElement('div');
     meta.className = 'snap-result-meta';
     meta.textContent = `Score: ${m.score}`;
@@ -613,6 +654,10 @@ function renderUploadResults(payload) {
     img.alt = 'uploaded';
     img.loading = 'lazy';
 
+    card.addEventListener('dblclick', () => {
+      openImageInNewTab(item.url);
+    });
+
     const meta = document.createElement('div');
     meta.className = 'snap-result-meta';
     const nFaces = item.face_count || 0;
@@ -624,9 +669,160 @@ function renderUploadResults(payload) {
   }
 }
 
+let uploadResultsCount = 0;
+let uploadResultsTotalFaces = 0;
+let uploadResultsTotalExpected = null;
+
+function resetUploadResults() {
+  const wrap = document.getElementById('uploadResults');
+  const metaEl = document.getElementById('uploadResultsMeta');
+  const grid = document.getElementById('uploadResultsGrid');
+  if (!wrap || !grid) return;
+
+  uploadResultsCount = 0;
+  uploadResultsTotalFaces = 0;
+  uploadResultsTotalExpected = null;
+
+  wrap.hidden = false;
+  grid.innerHTML = '';
+  if (metaEl) metaEl.textContent = 'Processing…';
+}
+
+function updateUploadResultsMeta() {
+  const metaEl = document.getElementById('uploadResultsMeta');
+  if (!metaEl) return;
+
+  const total = uploadResultsTotalExpected;
+  const prefix = typeof total === 'number'
+    ? `${uploadResultsCount} / ${total} image(s)`
+    : `${uploadResultsCount} image(s)`;
+  metaEl.textContent = `${prefix} • ${uploadResultsTotalFaces} face(s)`;
+}
+
+function appendUploadResultItem(item) {
+  const wrap = document.getElementById('uploadResults');
+  const grid = document.getElementById('uploadResultsGrid');
+  if (!wrap || !grid) return;
+  if (!item || !item.url) return;
+
+  wrap.hidden = false;
+
+  const card = document.createElement('div');
+  card.className = 'snap-result-card';
+  if (item.id !== undefined && item.id !== null) {
+    card.dataset.imageId = String(item.id);
+  }
+
+  const img = document.createElement('img');
+  img.src = item.url;
+  img.alt = 'uploaded';
+  img.loading = 'lazy';
+
+  card.addEventListener('dblclick', () => {
+    openImageInNewTab(item.url);
+  });
+
+  const meta = document.createElement('div');
+  meta.className = 'snap-result-meta';
+  const nFaces = item.face_count || 0;
+  meta.textContent = `Faces: ${nFaces}`;
+
+  card.appendChild(img);
+  card.appendChild(meta);
+  grid.appendChild(card);
+}
+
+function updateUploadResultFaceCount(id, faceCount) {
+  if (id === undefined || id === null) return;
+  const grid = document.getElementById('uploadResultsGrid');
+  if (!grid) return;
+  const card = grid.querySelector(`[data-image-id="${CSS.escape(String(id))}"]`);
+  if (!card) return;
+  const meta = card.querySelector('.snap-result-meta');
+  if (!meta) return;
+  const nFaces = faceCount || 0;
+  meta.textContent = `Faces: ${nFaces}`;
+}
+
+function ensureGalleryCard(item) {
+  const code = getRoomCode();
+  const gallery = document.getElementById('gallery');
+  if (!gallery || !item || !item.url) return;
+
+  const id = item.id;
+  const key = id !== undefined && id !== null ? String(id) : item.url;
+  const existing = gallery.querySelector(`[data-image-id="${CSS.escape(String(key))}"]`);
+  if (existing) {
+    // Update face count overlay if present
+    const overlay = existing.querySelector('.snap-overlay');
+    if (overlay) {
+      const fc = item.face_count || 0;
+      overlay.textContent = `Room: ${code} • Faces: ${fc}`;
+    }
+    return;
+  }
+
+  const card = document.createElement('div');
+  card.className = 'snap-card';
+  card.dataset.imageId = String(key);
+
+  const checkboxWrap = document.createElement('div');
+  checkboxWrap.className = 'snap-check';
+
+  const checkbox = document.createElement('input');
+  checkbox.type = 'checkbox';
+  checkbox.checked = selectedImageIds.has(id);
+  checkbox.ariaLabel = 'Select image';
+
+  checkbox.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (id !== undefined && id !== null) {
+      toggleSelected(id);
+      card.classList.toggle('is-selected', selectedImageIds.has(id));
+    }
+  });
+
+  checkboxWrap.appendChild(checkbox);
+
+  const img = document.createElement('img');
+  img.src = item.url;
+  img.alt = 'uploaded';
+  img.loading = 'lazy';
+
+  card.addEventListener('dblclick', () => {
+    openImageInNewTab(item.url);
+  });
+
+  const overlay = document.createElement('div');
+  overlay.className = 'snap-overlay';
+  const fc = item.face_count || 0;
+  overlay.textContent = `Room: ${code} • Faces: ${fc}`;
+
+  card.addEventListener('click', () => {
+    if (id !== undefined && id !== null) {
+      toggleSelected(id);
+      checkbox.checked = selectedImageIds.has(id);
+      card.classList.toggle('is-selected', selectedImageIds.has(id));
+    }
+  });
+
+  if (id !== undefined && id !== null && selectedImageIds.has(id)) {
+    card.classList.add('is-selected');
+  }
+
+  card.appendChild(checkboxWrap);
+  card.appendChild(img);
+  card.appendChild(overlay);
+  gallery.prepend(card);
+}
+
 async function createRoom() {
   const nameEl = document.getElementById('createName');
-  const payload = { name: nameEl ? nameEl.value : '' };
+  const descEl = document.getElementById('createDescription');
+  const payload = {
+    name: nameEl ? nameEl.value : '',
+    description: descEl ? descEl.value : '',
+  };
 
   const res = await fetch('/create_room/', {
     method: 'POST',
@@ -724,7 +920,7 @@ async function loadImages() {
   const code = getRoomCode();
   if (!code) return;
 
-  const res = await fetch(`/room-images/${encodeURIComponent(code)}/`);
+  const res = await fetch(`/room-images/${encodeURIComponent(code)}/`, { cache: 'no-store' });
   const data = await res.json().catch(() => ({}));
 
   if (!res.ok) {
@@ -734,6 +930,12 @@ async function loadImages() {
 
   const gallery = document.getElementById('gallery');
   if (!gallery) return;
+
+  if (data && data.room) {
+    setRoomHeader(data.room);
+  } else {
+    setRoomHeader({ code, name: 'Room', description: '' });
+  }
 
   gallery.innerHTML = '';
   const rawImages = Array.isArray(data.images) ? data.images : [];
@@ -775,6 +977,10 @@ async function loadImages() {
     img.src = item.url;
     img.alt = 'uploaded';
     img.loading = 'lazy';
+
+    card.addEventListener('dblclick', () => {
+      openImageInNewTab(item.url);
+    });
 
     const overlay = document.createElement('div');
     overlay.className = 'snap-overlay';
@@ -919,7 +1125,8 @@ async function uploadZip() {
   fd.append('room_code', code);
   fd.append('zip_file', file);
 
-  const res = await fetch('/upload-zip/', {
+  // Stream results so each processed image appears immediately.
+  const res = await fetch('/upload-zip/?stream=1', {
     method: 'POST',
     headers: {
       ...csrfHeaders(),
@@ -927,15 +1134,85 @@ async function uploadZip() {
     body: fd,
   });
 
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) {
+  if (!res.ok || !res.body) {
+    const data = await res.json().catch(() => ({}));
     alert(data.error || `ZIP upload failed (${res.status})`);
     return;
   }
 
-  renderUploadResults(data);
-  await loadImages();
-  if (input) input.value = '';
+  resetUploadResults();
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+
+  try {
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+
+      while (true) {
+        const nl = buffer.indexOf('\n');
+        if (nl === -1) break;
+
+        const line = buffer.slice(0, nl).trim();
+        buffer = buffer.slice(nl + 1);
+        if (!line) continue;
+
+        let msg;
+        try {
+          msg = JSON.parse(line);
+        } catch (e) {
+          console.warn('Invalid stream JSON line', line);
+          continue;
+        }
+
+        if (msg.type === 'start') {
+          if (typeof msg.total === 'number') uploadResultsTotalExpected = msg.total;
+          updateUploadResultsMeta();
+          continue;
+        }
+
+        if (msg.type === 'item' && msg.item) {
+          // Stage: uploaded (fast) => show immediately
+          if (typeof msg.processed_count === 'number') uploadResultsCount = msg.processed_count;
+          else uploadResultsCount += 1;
+
+          if (typeof msg.total_faces === 'number') uploadResultsTotalFaces = msg.total_faces;
+
+          appendUploadResultItem(msg.item);
+          ensureGalleryCard(msg.item);
+          updateUploadResultsMeta();
+          continue;
+        }
+
+        if (msg.type === 'update' && msg.item) {
+          if (typeof msg.total_faces === 'number') uploadResultsTotalFaces = msg.total_faces;
+          updateUploadResultFaceCount(msg.item.id, msg.item.face_count);
+          ensureGalleryCard(msg.item);
+          updateUploadResultsMeta();
+          continue;
+        }
+
+        if (msg.type === 'error') {
+          console.warn('ZIP item failed', msg);
+          continue;
+        }
+
+        if (msg.type === 'done') {
+          if (typeof msg.count === 'number') uploadResultsCount = msg.count;
+          if (typeof msg.total_faces === 'number') uploadResultsTotalFaces = msg.total_faces;
+          updateUploadResultsMeta();
+          continue;
+        }
+      }
+    }
+  } finally {
+    await loadImages();
+    if (input) input.value = '';
+  }
 }
 
 function copyLink() {

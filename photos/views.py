@@ -2,7 +2,7 @@ from django.shortcuts import render
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.generic import TemplateView
-from django.http import HttpResponse
+from django.http import HttpResponse, StreamingHttpResponse
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
@@ -121,6 +121,7 @@ class CreateRoom(APIView):
 
   def post(self,request):
     name = request.data.get("name") or "Room"
+    description = request.data.get("description")
     code = generate_room_code()
 
     while Room.objects.filter(code=code).exists():
@@ -128,12 +129,15 @@ class CreateRoom(APIView):
 
     room = Room.objects.create(
       name=name,
-      code=code
+      code=code,
+      description=description,
     )
 
     return Response({
       "message": "Room created",
-      "room_code": room.code
+      "room_code": room.code,
+      "room_name": room.name,
+      "room_description": room.description,
     }, status=201)
 
 
@@ -168,7 +172,14 @@ class RoomImages(APIView):
           url = url.replace("/storage/v1/object/public/iamges/", "/storage/v1/object/public/images/")
         data.append({"id": img.id, "url": url, "face_count": getattr(img, "face_count", 0) or 0})
 
-      return Response({"images": data})
+      return Response({
+        "room": {
+          "code": room.code,
+          "name": room.name,
+          "description": room.description,
+        },
+        "images": data,
+      })
     except Room.DoesNotExist:
       return Response({"error": "Room not found"}, status=404)
 
@@ -311,6 +322,13 @@ class UploadZip(APIView):
     room_code = request.data.get('room_code')
     zip_file = request.FILES.get('zip_file')
 
+    stream = False
+    try:
+      stream = (request.query_params.get('stream') == '1')
+    except Exception:
+      # Fallback if request isn't a DRF Request for some reason
+      stream = (getattr(request, 'GET', {}).get('stream') == '1')
+
     if not room_code or not zip_file:
       return Response({"error" : "Missing data"},status = 400)
 
@@ -318,33 +336,152 @@ class UploadZip(APIView):
       room = Room.objects.get(code = room_code)
     except Room.DoesNotExist:
       return Response({"error": "Invalid room"}, status=404)
-    
-    processed = []
+
     try:
+      if stream:
+        # Streaming responses may outlive request cleanup; copy ZIP bytes first.
         zip_bytes = zip_file.read()
         zip_data = zipfile.ZipFile(io.BytesIO(zip_bytes))
+      else:
+        try:
+          zip_file.seek(0)
+        except Exception:
+          pass
+        zip_data = zipfile.ZipFile(zip_file)
     except Exception:
-        return Response({"error": "Invalid ZIP file"}, status=400)
+      return Response({"error": "Invalid ZIP file"}, status=400)
 
-    for zip_info in zip_data.infolist():
-
+    def _iter_valid_members():
+      for zip_info in zip_data.infolist():
         if zip_info.is_dir():
-            continue
-
-        # Only keep the base file name to avoid directory traversal / odd paths
-        file_name = os.path.basename(zip_info.filename)
-        if not file_name:
           continue
 
-        if not file_name.lower().endswith(('.png', '.jpg', '.jpeg')):
-            continue
+        # Only keep the base file name to avoid directory traversal / odd paths
+        base_name = os.path.basename(zip_info.filename)
+        if not base_name:
+          continue
+
+        if not base_name.lower().endswith(('.png', '.jpg', '.jpeg')):
+          continue
 
         # Basic safety: skip very large members (default 10MB)
         if getattr(zip_info, "file_size", 0) and zip_info.file_size > 10 * 1024 * 1024:
           continue
 
-        import uuid
-        file_name = f"{uuid.uuid4()}_{file_name}"
+        yield zip_info, base_name
+
+    valid_members = list(_iter_valid_members())
+
+    if stream:
+      def gen():
+        uploaded_count = 0
+        processed_count = 0
+        total_faces = 0
+        try:
+          yield json.dumps({
+            "type": "start",
+            "total": len(valid_members),
+          }) + "\n"
+
+          for zip_info, base_name in valid_members:
+            try:
+              file_name = f"{uuid.uuid4()}_{base_name}"
+              file_data = zip_data.read(zip_info)
+              file_path = f"{room.code}/{file_name}"
+
+              supabase.storage.from_("images").upload(file_path, file_data)
+              public_url = supabase.storage.from_("images").get_public_url(file_path)
+
+              # Create the DB row immediately so the UI can render the image right away.
+              # We'll fill embeddings/face_count after the model finishes.
+              img = Image.objects.create(
+                room=room,
+                image_url=public_url,
+                embeddings=json.dumps([]),
+                face_count=0,
+              )
+
+              uploaded_count += 1
+              yield json.dumps({
+                "type": "item",
+                "stage": "uploaded",
+                "processed_count": uploaded_count,
+                "total_faces": total_faces,
+                "item": {
+                  "id": img.id,
+                  "url": public_url,
+                  "face_count": 0,
+                  "faces": [],
+                },
+              }) + "\n"
+
+              ext = os.path.splitext(file_name)[1] or ".jpg"
+              temp_path = f"temp_{uuid.uuid4().hex}{ext}"
+              with open(temp_path, "wb") as f:
+                f.write(file_data)
+
+              faces = represent_faces(temp_path)
+              try:
+                os.remove(temp_path)
+              except Exception:
+                pass
+
+              embeddings, face_meta = extract_embeddings_and_meta_from_representations(faces)
+
+              img.embeddings = json.dumps(embeddings)
+              img.face_count = len(embeddings)
+              img.save(update_fields=["embeddings", "face_count"])
+
+              processed_count += 1
+              total_faces += img.face_count or 0
+
+              yield json.dumps({
+                "type": "update",
+                "stage": "processed",
+                "processed_count": uploaded_count,
+                "model_processed_count": processed_count,
+                "total_faces": total_faces,
+                "item": {
+                  "id": img.id,
+                  "url": public_url,
+                  "face_count": img.face_count,
+                  "faces": face_meta,
+                },
+              }) + "\n"
+
+            except Exception as exc:
+              yield json.dumps({
+                "type": "error",
+                "message": str(exc),
+                "filename": base_name,
+              }) + "\n"
+
+          yield json.dumps({
+            "type": "done",
+            "count": uploaded_count,
+            "model_processed_count": processed_count,
+            "total_faces": total_faces,
+          }) + "\n"
+
+        except (BrokenPipeError, ConnectionResetError, GeneratorExit):
+          # Client disconnected (common during navigation/refresh). Stop work quietly.
+          return
+
+        finally:
+          try:
+            zip_data.close()
+          except Exception:
+            pass
+
+      resp = StreamingHttpResponse(gen(), content_type="application/x-ndjson; charset=utf-8")
+      resp["Cache-Control"] = "no-cache"
+      resp["X-Accel-Buffering"] = "no"
+      return resp
+
+    processed = []
+
+    for zip_info, base_name in valid_members:
+        file_name = f"{uuid.uuid4()}_{base_name}"
 
         file_data = zip_data.read(zip_info)
 
@@ -412,9 +549,17 @@ class ClusterFaces(APIView):
     except Exception:
       min_samples = None
 
-    fallback_threshold = _safe_float(request.GET.get("fallback_threshold"), 0.62)
+    # Facenet cosine similarity tends to work best around 0.75-0.8 for "same person".
+    # These defaults apply to fallback clustering (when HDBSCAN isn't available) and post-pruning.
+    fallback_threshold = _safe_float(request.GET.get("fallback_threshold"), 0.80)
 
-    prune_threshold = _safe_float(request.GET.get("prune_threshold"), 0.60)
+    prune_threshold = _safe_float(request.GET.get("prune_threshold"), 0.80)
+
+    # HDBSCAN-only tuning (safe no-ops for fallback clustering)
+    # IMPORTANT: this epsilon is a *distance* in the embedding space (not a cosine similarity).
+    # Use small values, or 0 to disable (default).
+    cluster_selection_epsilon = _safe_float(request.GET.get("cluster_selection_epsilon"), 0.0)
+    cluster_selection_method = request.GET.get("cluster_selection_method") or "eom"
 
     if not room_code:
       return Response({"error": "room_code required"}, status=400)
@@ -447,6 +592,8 @@ class ClusterFaces(APIView):
       all_embeddings,
       min_cluster_size=min_cluster_size,
       min_samples=min_samples,
+      cluster_selection_epsilon=cluster_selection_epsilon,
+      cluster_selection_method=cluster_selection_method,
       fallback_threshold=fallback_threshold,
       prune_threshold=prune_threshold,
     )
@@ -520,7 +667,8 @@ class SearchPerson(APIView):
     except Room.DoesNotExist:
       return Response({"error": "Room not found"}, status=404)
 
-    threshold = _safe_float(request.data.get("threshold"), 0.70)
+    # Facenet cosine similarity "same person" is often ~0.75-0.8.
+    threshold = _safe_float(request.data.get("threshold"), 0.78)
     # Clamp to sane range
     if threshold < 0:
       threshold = 0.0

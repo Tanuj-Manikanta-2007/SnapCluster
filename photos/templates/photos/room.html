@@ -13,7 +13,7 @@
 
 <!-- NAVBAR -->
 <div class="snap-navbar">
-  <a class="snap-logo" href="/">✨ Snap Cluster <span class="snap-room">Room <span id="roomCodeDisplay"></span></span></a>
+  <a class="snap-logo" href="/">✨ Snap Cluster <span class="snap-room"><span id="roomNameDisplay"></span> <span id="roomCodeDisplay"></span></span></a>
   <input class="snap-search" placeholder="Search faces, events, rooms..." disabled>
   <div class="snap-nav-actions">
     <button class="snap-btn" onclick="triggerZipPicker()">Upload ZIP</button>
@@ -84,6 +84,10 @@
     <div id="favoritesMeta" class="snap-results-meta"></div>
     <div id="favoritesClusters"></div>
   </section>
+
+  <div id="roomDescriptionWrap" class="snap-results-meta" hidden>
+    <div id="roomDescription"></div>
+  </div>
 </main>
 
 <!-- Hidden inputs for uploads -->

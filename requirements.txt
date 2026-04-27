@@ -1,0 +1,15 @@
+
+
+Django==5.2.8
+djangorestframework==3.17.1
+numpy==2.4.2
+requests==2.32.5
+supabase==2.28.3
+python-dotenv==1.2.1
+
+
+deepface==0.0.99
+hdbscan==0.8.42
+
+
+psycopg2-binary==2.9.11
