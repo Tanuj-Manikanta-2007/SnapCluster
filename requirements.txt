@@ -15,3 +15,6 @@ hdbscan==0.8.42
 
 
 psycopg2-binary==2.9.11
+
+# Static file serving on Render (via WhiteNoise)
+whitenoise==6.7.0
