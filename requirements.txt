@@ -1,4 +1,6 @@
 
+# NOTE: Deploy with Python 3.12 (or 3.11). DeepFace depends on TensorFlow,
+# and TensorFlow wheels are not available for Python 3.14 yet.
 
 Django==5.2.8
 djangorestframework==3.17.1
