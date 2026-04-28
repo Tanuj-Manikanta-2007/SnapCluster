@@ -13,6 +13,7 @@ import json
 import requests
 from urllib.parse import urlparse
 from urllib.request import urlopen, Request
+from django.db.utils import OperationalError, ProgrammingError
 from .models import Image, Room
 from .supabase_client import supabase
 from .utils import generate_room_code
@@ -122,16 +123,26 @@ class CreateRoom(APIView):
   def post(self,request):
     name = request.data.get("name") or "Room"
     description = request.data.get("description")
-    code = generate_room_code()
-
-    while Room.objects.filter(code=code).exists():
+    try:
       code = generate_room_code()
 
-    room = Room.objects.create(
-      name=name,
-      code=code,
-      description=description,
-    )
+      while Room.objects.filter(code=code).exists():
+        code = generate_room_code()
+
+      room = Room.objects.create(
+        name=name,
+        code=code,
+        description=description,
+      )
+    except (OperationalError, ProgrammingError) as exc:
+      return Response(
+        {
+          "error": "Database unavailable",
+          "hint": "Check Render env var DATABASE_URL/SUPABASE_POOLER_URL and that Supabase is reachable.",
+          "detail": str(exc),
+        },
+        status=status.HTTP_503_SERVICE_UNAVAILABLE,
+      )
 
     return Response({
       "message": "Room created",
@@ -146,6 +157,9 @@ class JoinRoom(APIView):
   def post(self,request):
     code = request.data.get("code")
 
+    if not code:
+      return Response({"error": "Missing room code"}, status=status.HTTP_400_BAD_REQUEST)
+
     try:
       room = Room.objects.get(code=code)
       return Response({
@@ -156,6 +170,15 @@ class JoinRoom(APIView):
       return Response({
         "error": "Room not found"
       }, status=404)
+    except (OperationalError, ProgrammingError) as exc:
+      return Response(
+        {
+          "error": "Database unavailable",
+          "hint": "Check Render env var DATABASE_URL/SUPABASE_POOLER_URL and that Supabase is reachable.",
+          "detail": str(exc),
+        },
+        status=status.HTTP_503_SERVICE_UNAVAILABLE,
+      )
 
 
 class RoomImages(APIView):
@@ -182,6 +205,15 @@ class RoomImages(APIView):
       })
     except Room.DoesNotExist:
       return Response({"error": "Room not found"}, status=404)
+    except (OperationalError, ProgrammingError) as exc:
+      return Response(
+        {
+          "error": "Database unavailable",
+          "hint": "Check Render env var DATABASE_URL/SUPABASE_POOLER_URL and that Supabase is reachable.",
+          "detail": str(exc),
+        },
+        status=status.HTTP_503_SERVICE_UNAVAILABLE,
+      )
 
 
 def _try_get_supabase_path_from_public_url(public_url: str) -> str | None:

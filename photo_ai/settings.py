@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 import os
+import socket
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
@@ -34,13 +35,24 @@ except Exception:
 SECRET_KEY = 'django-insecure-^r#6_h@pv!5kxb1qxdp(4lhm3^$hcmwm$(k8n0b+4#icp9*mur'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+# Default to True for local development; override with DEBUG=0 on Render.
+_debug_env = (os.environ.get("DEBUG") or "").strip().lower()
+DEBUG = True if _debug_env == "" else _debug_env in {"1", "true", "yes", "on"}
 
 ALLOWED_HOSTS = [
-    'spamcluster.onrender.com',
-    'localhost',
-    '127.0.0.1',
+    "localhost",
+    "127.0.0.1",
 ]
+
+# Render sets RENDER_EXTERNAL_HOSTNAME for web services.
+_render_host = (os.environ.get("RENDER_EXTERNAL_HOSTNAME") or "").strip()
+if _render_host:
+    ALLOWED_HOSTS.append(_render_host)
+
+# Back-compat / explicit host allowlist.
+_extra_hosts = (os.environ.get("ALLOWED_HOSTS") or "").strip()
+if _extra_hosts:
+    ALLOWED_HOSTS.extend([h.strip() for h in _extra_hosts.split(",") if h.strip()])
 
 
 # Application definition
@@ -98,6 +110,29 @@ DATABASES = {
 }
 
 
+def _resolve_ipv4(hostname: str) -> str:
+    """Return an IPv4 address for hostname when possible.
+
+    Render environments sometimes fail to reach Supabase over IPv6.
+    Forcing an IPv4 address avoids libpq choosing an AAAA record.
+    """
+    try:
+        infos = socket.getaddrinfo(hostname, None, family=socket.AF_INET, type=socket.SOCK_STREAM)
+        if infos:
+            return infos[0][4][0]
+    except Exception:
+        pass
+    return hostname
+
+
+def _is_render() -> bool:
+    return bool(
+        os.environ.get("RENDER")
+        or os.environ.get("RENDER_SERVICE_ID")
+        or os.environ.get("RENDER_EXTERNAL_HOSTNAME")
+    )
+
+
 def _db_from_url(db_url: str):
     parsed = urlparse(db_url)
     scheme = (parsed.scheme or "").lower()
@@ -111,12 +146,19 @@ def _db_from_url(db_url: str):
     if not name:
         name = "postgres"
 
+    host = parsed.hostname or "localhost"
+
+    # Workaround: Render sometimes can't reach Supabase over IPv6.
+    # If we're on Render and the hostname is a Supabase domain, force IPv4.
+    if _is_render() and host.endswith(".supabase.co"):
+        host = _resolve_ipv4(host)
+
     return {
         "ENGINE": "django.db.backends.postgresql",
         "NAME": name,
         "USER": parsed.username or "postgres",
         "PASSWORD": parsed.password or "",
-        "HOST": parsed.hostname or "localhost",
+        "HOST": host,
         "PORT": str(parsed.port or 5432),
         "CONN_MAX_AGE": 60,
         "OPTIONS": {
@@ -126,7 +168,14 @@ def _db_from_url(db_url: str):
 
 
 # Use Supabase Postgres when configured; otherwise keep SQLite.
-_supabase_db_url = os.environ.get("SUPABASE_DB_URL") or os.environ.get("DATABASE_URL")
+# Prefer pooler URL when provided (recommended on Render):
+# - Transaction pooler URLs commonly use port 6543.
+_supabase_db_url = (
+    os.environ.get("SUPABASE_POOLER_URL")
+    or os.environ.get("SUPABASE_DB_POOLER_URL")
+    or os.environ.get("SUPABASE_DB_URL")
+    or os.environ.get("DATABASE_URL")
+)
 if _supabase_db_url:
     DATABASES["default"] = _db_from_url(_supabase_db_url)
 
