@@ -82,15 +82,16 @@ The internship strengthened problem-solving abilities, technical implementation 
 
 
 </div>
-
 <!-- Project 1 -->
-<h3 id="project1">Project 1: Resume Reviewer </h3>
+<h3 id="project1">Project 1: Snap Cluster</h3>
 <p>
-  Resume Reviewer application was developed. An API was created using FastAPI that accepts resumes in .pdf and .doc/.docx formats, processes the documents by parsing and converting them into text, and returns corrected and structured output. The implementation involved handling file uploads, document parsing, text extraction, and integrating the API response with the frontend. The backend and frontend were managed and deployed separately, ensuring proper communication between services and rendering of processed output in the application.
+  The AI Photo Organizer is a backend system that automatically organizes images by grouping photos of the same person using artificial intelligence. Users can upload images, which are stored in cloud storage using Supabase. The system processes each image by detecting faces and converting them into numerical embeddings using DeepFace based on the FaceNet model. These embeddings capture unique facial features and are then clustered using the HDBSCAN algorithm. The clustering groups images of the same person without requiring any manual labeling. Finally, the system returns grouped images, allowing users to easily retrieve all photos of a specific individual. This project demonstrates the integration of AI, backend APIs, and cloud storage to solve real-world photo management problems.
 </p>
 <p>
-  <a href="https://github.com/Tanuj-Manikanta-2007/Resume-Reviewer" target="_blank"><strong>→ Project Github</strong></a>
+  <a href=["<!-- Add link to full report -->](https://github.com/Tanuj-Manikanta-2007/SnapCluster/blob/main/SURE%20Trust%20project%20document.pdf)" target="_blank"><strong>→ View Full Project Report</strong></a>
 </p>
+
+<hr style="height:1px; border-top:1px solid #ccc; width:80%;" />
 
 <!-- Project 2 -->
 <h3 id="project2">Project 2: Smat Loan Predictor</h3>
@@ -100,26 +101,23 @@ The internship strengthened problem-solving abilities, technical implementation 
 <p>
   <a href="https://in.docworkspace.com/d/sbCaem42vvslcQbN_3c923k5izgxirkhafo?sa=601.1037" target="_blank"><strong>→ View Full Project Report</strong></a>
 </p>
-
-
 <!-- Project 3 -->
-<h3 id="project3">Project 3: <!-- Add Project Title --></h3>
+<h3 id="project3">Project 3: Resume Reviewer </h3>
 <p>
-  The final project showcased the practical application of all concepts learned throughout the course.  
-  It required planning, building, optimizing, and documenting a complete real-world project.
+  Resume Reviewer application was developed. An API was created using FastAPI that accepts resumes in .pdf and .doc/.docx formats, processes the documents by parsing and converting them into text, and returns corrected and structured output. The implementation involved handling file uploads, document parsing, text extraction, and integrating the API response with the frontend. The backend and frontend were managed and deployed separately, ensuring proper communication between services and rendering of processed output in the application.
 </p>
 <p>
-  <a href="<!-- Add link to full report -->" target="_blank"><strong>→ View Full Project Report</strong></a>
+  <a href="https://github.com/Tanuj-Manikanta-2007/Resume-Reviewer" target="_blank"><strong>→ Project Github</strong></a>
 </p>
 
-<hr style="height:1px; border-top:1px solid #ccc; width:80%;" />
+
+
 
 
 ## **References**
 
 - [Wikipedia](https://wikipedia.com)
-<!--you can add refrences over here in same syntax as above -->
----
+
 
 
 ## **Learnings from LST and SST**
@@ -129,7 +127,6 @@ In addition to technical training, structured soft skills and life skills sessio
 
 ## **Community Services**
 
-<!-- add descreption in your own words -->
 
 During the internship period, participation in community-oriented activities was undertaken, including donating to elderly individuals and planting saplings as part of representing Sure ProEd. These activities focused on providing support and assistance to elderly people, reflecting social responsibility and empathy toward the community.
 
@@ -141,7 +138,7 @@ The plantation activity emphasized environmental responsibility, as planting tre
  
 - **Helping Elder Citizens** – Assisted two elderly individuals with simple daily tasks and provided support where needed. 
 
-<!-- you can write impacts according to your experience in your words-->
+
 
 ### **Impact / Contribution**
 
@@ -152,10 +149,7 @@ The plantation activity emphasized environmental responsibility, as planting tre
 
 ### **Photos**
 
-<!-- add your photos below -->
-<!-- change url below with your image urls (inside  src='')-->
 
-- These are just placeholder (sample) images <!-- remove this line -->
 
 <div align="center">
 
@@ -181,6 +175,17 @@ The internship certificate serves as an official acknowledgment of the successfu
 
 ## **Acknowledgments**
 
-<!-- you can add Acknowledgments over here in same syntax as below . eg trainer name , company name , role etc -->
+## **Acknowledgments**
+
+Sincere gratitude is extended to the Sure Trust team for providing this valuable opportunity and for the continuous support offered from day one. Appreciation is expressed for accepting the application at the initial stage, acknowledging the resume, facilitating engagement through the active learning platform, and extending guidance through to the final presentation and review process.
+
+Special thanks are conveyed to Bhargav Sir for continuous guidance, insightful suggestions, and constructive feedback throughout the program. Acknowledgment is also given to Radha Mam for consistently maintaining discipline and punctuality, which contributed significantly to a structured learning environment.
+
+Further appreciation is extended to Preethi Grace Mam for providing clear instruction and support in understanding and utilizing GitHub effectively. Gratitude is also expressed to Anggi Sir for serving as a dedicated mentor and for effectively organizing and conducting all sessions.
+
+Sincere thanks are offered to Karthiga Mam for the valuable support and guidance provided during the final day presentation, which played an important role in its successful execution.
+
+Overall, the support and contributions of all members involved have been instrumental in the successful completion of this program.
+
 
 - [Prof. Radhakumari Challa](https://www.linkedin.com/in/prof-radhakumari-challa-a3850219b) , Executive Director and Founder - [SURE Trust](https://www.suretrustforruralyouth.com/)
