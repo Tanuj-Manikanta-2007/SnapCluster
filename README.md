@@ -75,9 +75,11 @@ The internship strengthened problem-solving abilities, technical implementation 
 <h2 style="color:#333;"> Projects Completed </h2>
 <div align="left" style="margin: 20px; font-size: 16px;">
 
-<p><strong><a href="resume-reviewer-1-4zx7.onrender.com">Project 1:</a></strong> &lt;!-- Add project title → Resume Reviewer--&gt;</p>
+<p><strong>Project 1</strong> &lt;Snap Cluster </p>
 
-<p><strong><a href="https://smart-loan-predictor-sdhi.onrender.com/static/index.html">Project 2:</a></strong> &lt;!-- Add project title →Smart Loan Predictor --&gt;</p>
+<p><strong>Project 2</strong> &lt;Smart Loan Predictor </p>
+
+<p><strong>Project 2</strong> &lt;Resume Reviewer </p>
 
 
 
@@ -88,7 +90,7 @@ The internship strengthened problem-solving abilities, technical implementation 
   The AI Photo Organizer is a backend system that automatically organizes images by grouping photos of the same person using artificial intelligence. Users can upload images, which are stored in cloud storage using Supabase. The system processes each image by detecting faces and converting them into numerical embeddings using DeepFace based on the FaceNet model. These embeddings capture unique facial features and are then clustered using the HDBSCAN algorithm. The clustering groups images of the same person without requiring any manual labeling. Finally, the system returns grouped images, allowing users to easily retrieve all photos of a specific individual. This project demonstrates the integration of AI, backend APIs, and cloud storage to solve real-world photo management problems.
 </p>
 <p>
-  <a href=["<!-- Add link to full report -->](https://github.com/Tanuj-Manikanta-2007/SnapCluster/blob/main/SURE%20Trust%20project%20document.pdf)" target="_blank"><strong>→ View Full Project Report</strong></a>
+  <a href="https://github.com/Tanuj-Manikanta-2007/SnapCluster/blob/main/SURE%20Trust%20project%20document.pdf" target="_blank"><strong>→ View Full Project Report</strong></a>
 </p>
 
 <hr style="height:1px; border-top:1px solid #ccc; width:80%;" />
