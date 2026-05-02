@@ -1,166 +1,186 @@
-# 📸 AI Photo Organizer
+<div align="center" style="border: 2px solid #ccc; padding: 20px; border-radius: 12px; width: 80%; margin: auto; box-shadow: 0 0 10px rgba(0,0,0,0.15);">
+    <img
+        width="180"
+        height="220"
+        alt="Logo - SURE ProEd"
+        src="https://github.com/user-attachments/assets/88fa5098-24b1-4ece-87df-95eb920ea721"
+        style="border-radius: 10px;"
+    />
 
-An AI-powered backend system that automatically organizes photos by detecting faces and grouping images of the same person using deep learning and clustering.
+  <h1 align="center" style="font-family: Arial; font-weight: 600; margin-top: 15px;">SURE ProEd (formerly SURE Trust) 
+      </h1>
+<h2 style="color: #2b6cb0; font-family: Arial;">Skill Upgradation for Rural youth Empowerment Trust</h2>
+</div>
+
+<hr style="border: 0; border-top: 1px solid #ccc; width: 80%;" />
+
+<div style="padding: 20px; border: 2px solid #ddd; border-radius: 12px; width: 90%; margin: auto; background: #fafafa; font-family: Arial;">
+
+<h2 style = "color:#333;"> Student Details </h2>
+<div align = "left" style ="margin: 20px; font-size: 16px;">
+    <p><strong>Name:</strong> Pinninti Ganesh Tanuj Manikanta </p>
+    <p><strong>Email ID:</strong> pinnintitanuj@gmail.com </p>
+    <p><strong>College Name:</strong> Gitam University Hyderabad </p>
+    <p><strong>Branch/Specialization :</strong> CSE </p>
+    <p><strong>College ID:</strong> 2024175188 </p>
+</div>
+
+<hr style="border: 0; border-top: 1px solid #ccc; width: 80%;" />
+
+<h2 style="color:#333;"> Course Details </h2>
+<div align="left" style="margin: 20px; font-size: 16px;">
+    <p><strong>Course Opted:</strong> G36 Python </p>
+    <p><strong>Instructor Name:</strong> Bhargavesh Dakka </p>
+</div>
+<div align="left" style="margin: 20px; font-size: 16px;">
+    <p><strong>Duration:</strong> 6 months </p>
+
+<hr style="border: 0; border-top: 1px solid #ccc; width: 80%;" />
+
+<h2 style="color:#333;"> Trainer Details </h2>
+<div align="left" style="margin: 20px; font-size: 16px;">
+
+<p><strong>Trainer Name:</strong> Preethi Grace </p>
+<p><strong>Trainer Email ID:</strong> <!–– Add trainer email ––></p>
+<p><strong>Trainer Designation:</strong> <!–– Add designation along with company––></p>
+
+<hr style="border: 0; border-top: 1px solid #ccc; width: 80%;" />
+
+## **Table of Contents**
+- [Course Learning](#course-learning-to-be-edited-by-student)
+- [Projects Completed](#projects-completed)
+- [Project Introduction](#project-introduction)
+- [Technologies Used](#technologies-used)
+- [Roles and Responsibilities](#roles-and-responsibilities)
+- [Project Report](#project-report)
+- [Learnings from LST & SST](#learnings-from-lst--sst)
+- [Community Services](#community-services)
+- [Certificate](#certificate)
+- [Acknowledgments](#acknowledgments)
+
+<hr style="border: 0; border-top: 1px solid #ccc; width: 80%;" />
+
+
+## Overall Learning 
+
+During this internship, core competencies were developed in Python programming, backend development, and data analysis. Practical experience was gained in building RESTful APIs using the FastAPI framework, including integration of external APIs and development of internal API systems.
+
+Strong proficiency was developed in data analysis using Pandas, including data cleaning, preprocessing, and exploratory data analysis (EDA) techniques such as univariate, bivariate, and multivariate analysis. Data visualization skills were also enhanced for effective representation of insights.
+
+Additional experience was obtained in Microsoft Excel and Power BI for data analysis and dashboard creation. Fundamental machine learning concepts were applied, including classification and regression models for predictive analysis.
+
+The internship strengthened problem-solving abilities, technical implementation skills, and the ability to work with real-world datasets and backend systems.
+
+
+<h2 style="color:#333;"> Projects Completed </h2>
+<div align="left" style="margin: 20px; font-size: 16px;">
+
+<p><strong><a href="resume-reviewer-1-4zx7.onrender.com">Project 1:</a></strong> &lt;!-- Add project title → Resume Reviewer--&gt;</p>
+
+<p><strong><a href="https://smart-loan-predictor-sdhi.onrender.com/static/index.html">Project 2:</a></strong> &lt;!-- Add project title →Smart Loan Predictor --&gt;</p>
+
+
+
+</div>
+
+<!-- Project 1 -->
+<h3 id="project1">Project 1: Resume Reviewer </h3>
+<p>
+  Resume Reviewer application was developed. An API was created using FastAPI that accepts resumes in .pdf and .doc/.docx formats, processes the documents by parsing and converting them into text, and returns corrected and structured output. The implementation involved handling file uploads, document parsing, text extraction, and integrating the API response with the frontend. The backend and frontend were managed and deployed separately, ensuring proper communication between services and rendering of processed output in the application.
+</p>
+<p>
+  <a href="https://github.com/Tanuj-Manikanta-2007/Resume-Reviewer" target="_blank"><strong>→ Project Github</strong></a>
+</p>
+
+<!-- Project 2 -->
+<h3 id="project2">Project 2: Smat Loan Predictor</h3>
+<p>
+  Smart Loan Predictor, was developed using machine learning techniques. A sample dataset was used to perform exploratory data analysis (EDA), followed by the application of multiple classification algorithms including Logistic Regression, Support Vector Machine (SVM), Decision Tree, and Random Forest. Random Forest achieved the highest accuracy and was selected for deployment. The trained model and preprocessing pipeline were saved as .pkl files and integrated into a FastAPI application. The model was tested using Jupyter Notebook, and the frontend was implemented using FastAPI static files. The complete application was successfully deployed.
+</p>
+<p>
+  <a href="https://in.docworkspace.com/d/sbCaem42vvslcQbN_3c923k5izgxirkhafo?sa=601.1037" target="_blank"><strong>→ View Full Project Report</strong></a>
+</p>
+
+
+<!-- Project 3 -->
+<h3 id="project3">Project 3: <!-- Add Project Title --></h3>
+<p>
+  The final project showcased the practical application of all concepts learned throughout the course.  
+  It required planning, building, optimizing, and documenting a complete real-world project.
+</p>
+<p>
+  <a href="<!-- Add link to full report -->" target="_blank"><strong>→ View Full Project Report</strong></a>
+</p>
+
+<hr style="height:1px; border-top:1px solid #ccc; width:80%;" />
+
+
+## **References**
+
+- [Wikipedia](https://wikipedia.com)
+<!--you can add refrences over here in same syntax as above -->
+---
+
+
+## **Learnings from LST and SST**
+
+In addition to technical training, structured soft skills and life skills sessions were conducted over a mandatory three-week (15-day) program. These sessions covered professional communication, workplace ethics, emotional intelligence, leadership, presentation skills, negotiation, and career development. Bi-weekly Life Upskilling sessions are featuring experienced speakers from diverse domains who shared real-world insights and industry experiences. The sessions provided exposure to workplace expectations, broadened perspective on career growth, and included POSH (Prevention of Sexual Harassment) awareness training along with effective communication practices required in professional environments.
+---
+
+## **Community Services**
+
+<!-- add descreption in your own words -->
+
+During the internship period, participation in community-oriented activities was undertaken, including donating to elderly individuals and planting saplings as part of representing Sure ProEd. These activities focused on providing support and assistance to elderly people, reflecting social responsibility and empathy toward the community.
+
+The plantation activity emphasized environmental responsibility, as planting trees contributes to ecological balance and the availability of clean oxygen. These initiatives highlighted the importance of contributing to society and maintaining awareness of both social and environmental responsibilities alongside professional development.
+
+### **Activities Involved**
+- **Tree Plantation Drive** – Participated by planting trees and contributing to environmental improvement.
+
+ 
+- **Helping Elder Citizens** – Assisted two elderly individuals with simple daily tasks and provided support where needed. 
+
+<!-- you can write impacts according to your experience in your words-->
+
+### **Impact / Contribution**
+
+- Helped create a supportive environment during the blood donation camp. <!-- add the location where you given -->
+- Actively participated in promoting a greener and cleaner surroundings.
+- Offered personal assistance to elder citizens, strengthening community bonds.
+- Improved skills in communication, coordination, and social responsibility.
+
+### **Photos**
+
+<!-- add your photos below -->
+<!-- change url below with your image urls (inside  src='')-->
+
+- These are just placeholder (sample) images <!-- remove this line -->
+
+<div align="center">
+
+<img width="1599" height="1599" alt="image" src="https://github.com/user-attachments/assets/37be7409-7f96-4f3e-acb8-5345175172da" />
+
+<img width="1599" height="1599" alt="image" src="https://github.com/user-attachments/assets/3bb4c32c-a006-44ec-8919-c588044b93f0" />
+</div>
+
 
 ---
 
-## 🚀 Overview
+## **Certificate**
 
-Managing large collections of photos is difficult and time-consuming. This project provides an intelligent solution that:
+The internship certificate serves as an official acknowledgment of the successful completion of my training period. It will be issued by the organization upon fulfilling all required tasks and meeting the performance expectations of the program. The certificate validates the skills, experience, and contributions made during the internship.
 
-* Detects faces in uploaded images
-* Generates facial embeddings using deep learning
-* Groups similar faces automatically
-* Organizes photos by person without manual tagging
+<!-- add your certificate image url below (inside src='')-->
 
----
-
-## 🎯 Features
-
-* 📤 Upload images (single / multiple / ZIP)
-* 🧠 Face detection and embedding generation
-* 🗂️ Automatic clustering of faces (group by person)
-* ☁️ Cloud storage using Supabase
-* 🧾 Room-based image organization
-* 🔍 Retrieve grouped images via API
+<p align="center">
+<img src="https://github.com/Lord-Rahul/Practice-Programs/blob/main/react/1/public/Gemini_Generated_Image_a6w8rda6w8rda6w8.png?raw=true" alt="Internship Certificate" width="80%">
+</p>
 
 ---
 
-## 🏗️ System Architecture
+## **Acknowledgments**
 
-```text
-User → Django API → Supabase Storage → DeepFace (FaceNet)
-     → Embeddings → HDBSCAN Clustering → Grouped Results
-```
+<!-- you can add Acknowledgments over here in same syntax as below . eg trainer name , company name , role etc -->
 
----
-
-## ⚙️ Tech Stack
-
-### Backend
-
-* Django
-* Django REST Framework
-
-### AI / Machine Learning
-
-* DeepFace (FaceNet)
-* HDBSCAN
-
-### Storage & Database
-
-* Supabase Storage
-* PostgreSQL / Supabase DB
-
-### Deployment
-
-* Render
-
----
-
-## 📂 Project Structure
-
-```bash
-photo_ai/
-│── photo_ai/
-│   ├── settings.py
-│   ├── urls.py
-│
-│── photos/
-│   ├── views.py          # API endpoints
-│   ├── models.py         # DB models
-│   ├── face_utils.py     # Face embedding logic
-│   ├── face_cluster.py   # Clustering logic
-│   ├── supabase_client.py
-│
-│── manage.py
-│── requirements.txt
-```
-
----
-
-## 🔄 Workflow
-
-1. User uploads images with a room code
-2. Images are stored in Supabase
-3. Images are temporarily downloaded for processing
-4. Face embeddings are generated using DeepFace
-5. Embeddings are stored in the database
-6. HDBSCAN clusters similar faces
-7. Images are grouped by person and returned
-
----
-
-## 🧪 API Endpoints
-
-### 📤 Upload Images
-
-```http
-POST /upload/
-```
-
-**Form Data:**
-
-* `images` (file)
-* `room_code` (string)
-
----
-
-### 🧠 Cluster Faces
-
-```http
-GET /cluster/?room_code=XYZ
-```
-
-**Response:**
-
-```json
-{
-  "clusters": {
-    "0": ["url1", "url2"],
-    "1": ["url3", "url4"]
-  }
-}
-```
-
----
-
-## 📊 Results
-
-* Automatically groups photos of the same person
-* Handles multiple faces per image
-* Identifies noise (unknown faces) using clustering
-
----
-
-## ⚠️ Challenges
-
-* Dependency conflicts (DeepFace, TensorFlow)
-* Handling large image files
-* Choosing optimal clustering algorithm
-* Managing temporary files efficiently
-
----
-
-## 🚀 Future Improvements
-
-* Add authentication system
-* Search photos by uploading a face
-* Improve clustering accuracy
-* Build frontend interface
-* Optimize performance using async processing
-
----
-
-## 🏁 Conclusion
-
-This project demonstrates how AI and backend systems can be combined to solve real-world problems like photo organization. It provides a scalable and automated approach to managing large image datasets.
-
----
-
-## 👤 Author
-
-**Tanuj Pinninti**
-
----
-
+- [Prof. Radhakumari Challa](https://www.linkedin.com/in/prof-radhakumari-challa-a3850219b) , Executive Director and Founder - [SURE Trust](https://www.suretrustforruralyouth.com/)
