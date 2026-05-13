@@ -434,6 +434,7 @@ class UploadZip(APIView):
 
         yield zip_info, base_name
 
+<<<<<<< HEAD
     valid_members = list(_iter_valid_members())
 
     def _zip_upload_workers():
@@ -500,6 +501,74 @@ class UploadZip(APIView):
               # Create the DB row immediately so the UI can render the image right away.
               # We'll fill embeddings/face_count after the model finishes.
               img = Image.objects.create(
+=======
+    valid_members = list(_iter_valid_members())
+
+    def _zip_upload_workers():
+      try:
+        workers = int(os.environ.get("ZIP_UPLOAD_WORKERS") or 4)
+      except Exception:
+        workers = 4
+      return max(1, min(workers, 8))
+
+    if stream:
+      def gen():
+        uploaded_count = 0
+        processed_count = 0
+        total_faces = 0
+        pending_face_jobs = []
+
+        def upload_member(file_data, base_name):
+          file_name = f"{uuid.uuid4()}_{base_name}"
+          file_path = f"{room.code}/{file_name}"
+          supabase.storage.from_("images").upload(file_path, file_data)
+          public_url = supabase.storage.from_("images").get_public_url(file_path)
+          return {
+            "base_name": base_name,
+            "file_name": file_name,
+            "file_data": file_data,
+            "public_url": public_url,
+          }
+
+        try:
+          yield json.dumps({
+            "type": "start",
+            "total": len(valid_members),
+          }) + "\n"
+
+          with ThreadPoolExecutor(max_workers=_zip_upload_workers()) as executor:
+            futures = {}
+            for zip_info, base_name in valid_members:
+              try:
+                file_data = zip_data.read(zip_info)
+              except Exception as exc:
+                yield json.dumps({
+                  "type": "error",
+                  "message": str(exc),
+                  "filename": base_name,
+                }) + "\n"
+                continue
+              future = executor.submit(upload_member, file_data, base_name)
+              futures[future] = base_name
+
+            for future in as_completed(futures):
+              try:
+                uploaded = future.result()
+                file_name = uploaded["file_name"]
+                file_data = uploaded["file_data"]
+                public_url = uploaded["public_url"]
+              except Exception as exc:
+                yield json.dumps({
+                  "type": "error",
+                  "message": str(exc),
+                  "filename": futures.get(future),
+                }) + "\n"
+                continue
+
+              # Create the DB row immediately so the UI can render the image right away.
+              # We'll fill embeddings/face_count after the model finishes.
+              img = Image.objects.create(
+>>>>>>> 3a7fef0878ea9c60627c80c7ea37d97f3e9235c4
                 room=room,
                 image_url=public_url,
                 embeddings=json.dumps([]),
@@ -516,6 +585,7 @@ class UploadZip(APIView):
                   "id": img.id,
                   "url": public_url,
                   "face_count": 0,
+<<<<<<< HEAD
                   "faces": [],
                 },
               }) + "\n"
@@ -528,12 +598,27 @@ class UploadZip(APIView):
               temp_path = f"temp_{uuid.uuid4().hex}{ext}"
               with open(temp_path, "wb") as f:
                 f.write(file_data)
+=======
+                  "faces": [],
+                },
+              }) + "\n"
+
+              pending_face_jobs.append((img.id, public_url, file_name, file_data))
+
+          for img_id, public_url, file_name, file_data in pending_face_jobs:
+            try:
+              ext = os.path.splitext(file_name)[1] or ".jpg"
+              temp_path = f"temp_{uuid.uuid4().hex}{ext}"
+              with open(temp_path, "wb") as f:
+                f.write(file_data)
+>>>>>>> 3a7fef0878ea9c60627c80c7ea37d97f3e9235c4
 
               faces = represent_faces(temp_path)
               try:
                 os.remove(temp_path)
               except Exception:
                 pass
+<<<<<<< HEAD
 
               embeddings, face_meta = extract_embeddings_and_meta_from_representations(faces)
 
@@ -541,6 +626,15 @@ class UploadZip(APIView):
               img.embeddings = json.dumps(embeddings)
               img.face_count = len(embeddings)
               img.save(update_fields=["embeddings", "face_count"])
+=======
+
+              embeddings, face_meta = extract_embeddings_and_meta_from_representations(faces)
+
+              img = Image.objects.get(id=img_id)
+              img.embeddings = json.dumps(embeddings)
+              img.face_count = len(embeddings)
+              img.save(update_fields=["embeddings", "face_count"])
+>>>>>>> 3a7fef0878ea9c60627c80c7ea37d97f3e9235c4
 
               processed_count += 1
               total_faces += img.face_count or 0
@@ -556,6 +650,7 @@ class UploadZip(APIView):
                   "url": public_url,
                   "face_count": img.face_count,
                   "faces": face_meta,
+<<<<<<< HEAD
                 },
               }) + "\n"
 
@@ -565,6 +660,17 @@ class UploadZip(APIView):
                 "message": str(exc),
                 "filename": file_name,
               }) + "\n"
+=======
+                },
+              }) + "\n"
+
+            except Exception as exc:
+              yield json.dumps({
+                "type": "error",
+                "message": str(exc),
+                "filename": file_name,
+              }) + "\n"
+>>>>>>> 3a7fef0878ea9c60627c80c7ea37d97f3e9235c4
 
           yield json.dumps({
             "type": "done",
@@ -836,4 +942,8 @@ class SearchPerson(APIView):
       "threshold": threshold,
       "count": len(matches),
       "matches": matches,
+<<<<<<< HEAD
     })
+=======
+    })
+>>>>>>> 3a7fef0878ea9c60627c80c7ea37d97f3e9235c4
