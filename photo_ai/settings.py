@@ -99,6 +99,13 @@ TEMPLATES = [
 WSGI_APPLICATION = 'photo_ai.wsgi.application'
 
 
+# Auth
+# Store users/sessions in the configured DB (SQLite locally, Supabase Postgres when SUPABASE_* URL is set).
+LOGIN_URL = "/login/"
+LOGIN_REDIRECT_URL = "/"
+LOGOUT_REDIRECT_URL = "/login/"
+
+
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 

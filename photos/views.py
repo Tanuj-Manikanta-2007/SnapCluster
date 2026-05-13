@@ -1,4 +1,9 @@
-from django.shortcuts import render
+from django.contrib.auth import login as auth_login
+from django.contrib.auth import logout as auth_logout
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.views import LoginView
+from django.contrib.auth.forms import UserCreationForm
+from django.shortcuts import redirect, render
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.generic import TemplateView
@@ -11,6 +16,7 @@ import zipfile,io
 import os
 import json
 import requests
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from urllib.parse import urlparse
 from urllib.request import urlopen, Request
 from django.db.utils import OperationalError, ProgrammingError
@@ -23,13 +29,39 @@ from .face_cluster import cluster_faces
 import numpy as np
 
 @method_decorator(ensure_csrf_cookie, name='dispatch')
-class IndexPage(TemplateView):
+class IndexPage(LoginRequiredMixin, TemplateView):
   template_name = "photos/index.html"
 
 
 @method_decorator(ensure_csrf_cookie, name='dispatch')
-class RoomPage(TemplateView):
+class RoomPage(LoginRequiredMixin, TemplateView):
   template_name = "photos/room.html"
+
+
+@method_decorator(ensure_csrf_cookie, name="dispatch")
+class UserLoginView(LoginView):
+  template_name = "registration/login.html"
+  redirect_authenticated_user = True
+
+
+def signup_page(request):
+  if request.method == "POST":
+    form = UserCreationForm(request.POST)
+    if form.is_valid():
+      user = form.save()
+      auth_login(request, user)
+      return redirect("/")
+  else:
+    form = UserCreationForm()
+
+  return render(request, "registration/signup.html", {"form": form})
+
+
+def logout_page(request):
+  if request.method == "POST":
+    auth_logout(request)
+    return redirect("login")
+  return render(request, "registration/logout.html")
 
 
 class UploadImages(APIView):
@@ -404,25 +436,66 @@ class UploadZip(APIView):
 
     valid_members = list(_iter_valid_members())
 
+    def _zip_upload_workers():
+      try:
+        workers = int(os.environ.get("ZIP_UPLOAD_WORKERS") or 4)
+      except Exception:
+        workers = 4
+      return max(1, min(workers, 8))
+
     if stream:
       def gen():
         uploaded_count = 0
         processed_count = 0
         total_faces = 0
+        pending_face_jobs = []
+
+        def upload_member(file_data, base_name):
+          file_name = f"{uuid.uuid4()}_{base_name}"
+          file_path = f"{room.code}/{file_name}"
+          supabase.storage.from_("images").upload(file_path, file_data)
+          public_url = supabase.storage.from_("images").get_public_url(file_path)
+          return {
+            "base_name": base_name,
+            "file_name": file_name,
+            "file_data": file_data,
+            "public_url": public_url,
+          }
+
         try:
           yield json.dumps({
             "type": "start",
             "total": len(valid_members),
           }) + "\n"
 
-          for zip_info, base_name in valid_members:
-            try:
-              file_name = f"{uuid.uuid4()}_{base_name}"
-              file_data = zip_data.read(zip_info)
-              file_path = f"{room.code}/{file_name}"
+          with ThreadPoolExecutor(max_workers=_zip_upload_workers()) as executor:
+            futures = {}
+            for zip_info, base_name in valid_members:
+              try:
+                file_data = zip_data.read(zip_info)
+              except Exception as exc:
+                yield json.dumps({
+                  "type": "error",
+                  "message": str(exc),
+                  "filename": base_name,
+                }) + "\n"
+                continue
+              future = executor.submit(upload_member, file_data, base_name)
+              futures[future] = base_name
 
-              supabase.storage.from_("images").upload(file_path, file_data)
-              public_url = supabase.storage.from_("images").get_public_url(file_path)
+            for future in as_completed(futures):
+              try:
+                uploaded = future.result()
+                file_name = uploaded["file_name"]
+                file_data = uploaded["file_data"]
+                public_url = uploaded["public_url"]
+              except Exception as exc:
+                yield json.dumps({
+                  "type": "error",
+                  "message": str(exc),
+                  "filename": futures.get(future),
+                }) + "\n"
+                continue
 
               # Create the DB row immediately so the UI can render the image right away.
               # We'll fill embeddings/face_count after the model finishes.
@@ -447,6 +520,10 @@ class UploadZip(APIView):
                 },
               }) + "\n"
 
+              pending_face_jobs.append((img.id, public_url, file_name, file_data))
+
+          for img_id, public_url, file_name, file_data in pending_face_jobs:
+            try:
               ext = os.path.splitext(file_name)[1] or ".jpg"
               temp_path = f"temp_{uuid.uuid4().hex}{ext}"
               with open(temp_path, "wb") as f:
@@ -460,6 +537,7 @@ class UploadZip(APIView):
 
               embeddings, face_meta = extract_embeddings_and_meta_from_representations(faces)
 
+              img = Image.objects.get(id=img_id)
               img.embeddings = json.dumps(embeddings)
               img.face_count = len(embeddings)
               img.save(update_fields=["embeddings", "face_count"])
@@ -485,7 +563,7 @@ class UploadZip(APIView):
               yield json.dumps({
                 "type": "error",
                 "message": str(exc),
-                "filename": base_name,
+                "filename": file_name,
               }) + "\n"
 
           yield json.dumps({

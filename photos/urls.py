@@ -1,6 +1,25 @@
 from django.urls import path
-from .views import CreateRoom, DeleteImages, DeleteRoom, DownloadImagesZip, IndexPage, JoinRoom, RoomImages, RoomPage, UploadImages, UploadZip , ClusterFaces, SearchPerson
+from .views import (
+  ClusterFaces,
+  CreateRoom,
+  DeleteImages,
+  DeleteRoom,
+  DownloadImagesZip,
+  IndexPage,
+  JoinRoom,
+  RoomImages,
+  RoomPage,
+  SearchPerson,
+  UploadImages,
+  UploadZip,
+  UserLoginView,
+  logout_page,
+  signup_page,
+)
 urlpatterns = [
+  path('login/', UserLoginView.as_view(), name='login'),
+  path('signup/', signup_page, name='signup'),
+  path('logout/', logout_page, name='logout'),
   path('', IndexPage.as_view()),
   path('room/', RoomPage.as_view()),
   path('upload-images/', UploadImages.as_view()),

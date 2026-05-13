@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sign up · Snap Cluster</title>
+  {% load static %}
+  <link rel="stylesheet" href="{% static 'css/style.css' %}?v=7">
+</head>
+<body>
+  <div class="snap-glow"></div>
+
+  <div class="snap-navbar">
+    <a class="snap-logo" href="/">✨ Snap Cluster</a>
+    <input class="snap-search" placeholder="Search faces, events, rooms..." disabled>
+    <div class="snap-nav-actions"></div>
+  </div>
+
+  <main class="snap-main is-home">
+    <div class="snap-home-hero">
+      <div class="snap-home-icon">🧾</div>
+      <h1 class="snap-home-title">Create account</h1>
+      <p class="snap-home-sub">One account for all your rooms.</p>
+    </div>
+
+    <div class="snap-home-cards">
+      <div class="card">
+        <h2>Sign up</h2>
+
+        {% if form.non_field_errors %}
+          <div class="snap-results-meta">
+            {% for err in form.non_field_errors %}
+              <div>{{ err }}</div>
+            {% endfor %}
+          </div>
+        {% endif %}
+
+        <form method="post" action="{% url 'signup' %}">
+          {% csrf_token %}
+
+          <input
+            type="text"
+            name="username"
+            autocomplete="username"
+            placeholder="Username"
+            value="{{ form.username.value|default_if_none:'' }}"
+            required
+          />
+          {% if form.username.errors %}
+            <div class="snap-results-meta">{{ form.username.errors }}</div>
+          {% endif %}
+
+          <input
+            type="password"
+            name="password1"
+            autocomplete="new-password"
+            placeholder="Password"
+            required
+          />
+          {% if form.password1.errors %}
+            <div class="snap-results-meta">{{ form.password1.errors }}</div>
+          {% endif %}
+
+          <input
+            type="password"
+            name="password2"
+            autocomplete="new-password"
+            placeholder="Confirm password"
+            required
+          />
+          {% if form.password2.errors %}
+            <div class="snap-results-meta">{{ form.password2.errors }}</div>
+          {% endif %}
+
+          <button type="submit">Create account</button>
+        </form>
+
+        <div class="snap-results-meta" style="margin-top: 12px;">
+          Already have an account? <a href="{% url 'login' %}">Log in</a>
+        </div>
+      </div>
+    </div>
+  </main>
+</body>
+</html>

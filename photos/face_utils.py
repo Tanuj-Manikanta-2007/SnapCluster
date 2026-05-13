@@ -1,4 +1,19 @@
 import os
+import logging
+import warnings
+
+
+def _configure_ml_logging():
+  # Must be set before DeepFace imports TensorFlow.
+  os.environ.setdefault("TF_CPP_MIN_LOG_LEVEL", "2")
+  os.environ.setdefault("TF_ENABLE_ONEDNN_OPTS", "0")
+
+  logging.getLogger("tensorflow").setLevel(logging.ERROR)
+  logging.getLogger("absl").setLevel(logging.ERROR)
+  warnings.filterwarnings("ignore", category=DeprecationWarning, module=r"tensorflow|tf_keras")
+
+
+_configure_ml_logging()
 
 
 def _env_bool(name: str, default: bool) -> bool:

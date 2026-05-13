@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Logout · Snap Cluster</title>
+  {% load static %}
+  <link rel="stylesheet" href="{% static 'css/style.css' %}?v=7">
+</head>
+<body>
+  <div class="snap-glow"></div>
+
+  <div class="snap-navbar">
+    <a class="snap-logo" href="/">✨ Snap Cluster</a>
+    <input class="snap-search" placeholder="Search faces, events, rooms..." disabled>
+    <div class="snap-nav-actions"></div>
+  </div>
+
+  <main class="snap-main is-home">
+    <div class="snap-home-hero">
+      <div class="snap-home-icon">🚪</div>
+      <h1 class="snap-home-title">Logout</h1>
+      <p class="snap-home-sub">End your current session.</p>
+    </div>
+
+    <div class="snap-home-cards">
+      <div class="card">
+        <h2>Confirm</h2>
+
+        <div class="snap-results-meta" style="margin: 10px 0 18px;">
+          Are you sure you want to log out?
+        </div>
+
+        <form method="post" action="{% url 'logout' %}">
+          {% csrf_token %}
+          <button type="submit" class="btn-danger" style="width: 100%;">Log out</button>
+        </form>
+
+        <div style="margin-top: 12px;">
+          <a href="/" class="snap-results-meta">Cancel</a>
+        </div>
+      </div>
+    </div>
+  </main>
+</body>
+</html>

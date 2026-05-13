@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Login · Snap Cluster</title>
+  {% load static %}
+  <link rel="stylesheet" href="{% static 'css/style.css' %}?v=7">
+</head>
+<body>
+  <div class="snap-glow"></div>
+
+  <div class="snap-navbar">
+    <a class="snap-logo" href="/">✨ Snap Cluster</a>
+    <input class="snap-search" placeholder="Search faces, events, rooms..." disabled>
+    <div class="snap-nav-actions"></div>
+  </div>
+
+  <main class="snap-main is-home">
+    <div class="snap-home-hero">
+      <div class="snap-home-icon">🔐</div>
+      <h1 class="snap-home-title">Sign in</h1>
+      <p class="snap-home-sub">Access your rooms and uploads.</p>
+    </div>
+
+    <div class="snap-home-cards">
+      <div class="card">
+        <h2>Login</h2>
+
+        {% if form.non_field_errors %}
+          <div class="snap-results-meta">
+            {% for err in form.non_field_errors %}
+              <div>{{ err }}</div>
+            {% endfor %}
+          </div>
+        {% endif %}
+
+        <form method="post" action="{% url 'login' %}">
+          {% csrf_token %}
+
+          <input
+            type="text"
+            name="username"
+            autocomplete="username"
+            placeholder="Username"
+            value="{{ form.username.value|default_if_none:'' }}"
+            required
+          />
+          {% if form.username.errors %}
+            <div class="snap-results-meta">{{ form.username.errors }}</div>
+          {% endif %}
+
+          <input
+            type="password"
+            name="password"
+            autocomplete="current-password"
+            placeholder="Password"
+            required
+          />
+          {% if form.password.errors %}
+            <div class="snap-results-meta">{{ form.password.errors }}</div>
+          {% endif %}
+
+          <input type="hidden" name="next" value="{{ next|default:'/' }}" />
+
+          <button type="submit">Sign in</button>
+        </form>
+
+        <div class="snap-results-meta" style="margin-top: 12px;">
+          Don’t have an account? <a href="{% url 'signup' %}">Sign up</a>
+        </div>
+      </div>
+    </div>
+  </main>
+</body>
+</html>
